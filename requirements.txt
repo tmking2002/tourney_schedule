@@ -1,0 +1,6 @@
+beautifulsoup4==4.12.3
+chromedriver_autoinstaller==0.6.4
+pandas==2.0.2
+plotly==5.18.0
+selenium==4.21.0
+streamlit==1.28.2

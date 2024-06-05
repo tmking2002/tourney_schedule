@@ -64,4 +64,4 @@ u14 = scrape_page('//*[@id="divisions-team-1"]', 'U14')
 
 game_info = pd.concat([u18, u16, u14])
 
-game_info.to_csv('tourney_schedule/game_info.csv', index=False)
+game_info.to_csv('game_info.csv', index=False)
