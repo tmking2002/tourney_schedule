@@ -28,6 +28,6 @@ if tourney == 'PGF Show Me The Money Showcase':
     filtered_data = filtered_data[['Age Group', 'Away', 'Home', 'Time', 'Field']]
 
     filtered_data['Time'] = filtered_data['Time'].dt.strftime('%m/%d/%Y %I:%M %p')
-    filtered_data = filtered_data.sort_values(by='Time')
+    filtered_data = filtered_data.sort_values(by='Time').drop_duplicates()
 
     st.table(filtered_data)
