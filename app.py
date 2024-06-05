@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
+st.title('Tournament Schedule')
+
 tourney = st.selectbox('Select Tournament', ['PGF Show Me The Money Showcase'])
-
-
 
 if tourney == 'PGF Show Me The Money Showcase':
 
