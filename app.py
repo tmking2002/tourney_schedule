@@ -52,4 +52,38 @@ if tourney == 'PGF Show Me The Money Showcase':
     filtered_data['Time'] = filtered_data['Time'].dt.strftime('%m/%d/%Y %I:%M %p')
     filtered_data = filtered_data.sort_values(by='Time').drop_duplicates()
 
-    st.table(filtered_data)
+    st.write(
+        """
+        <style>
+        table {
+            font-family: Arial, sans-serif;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Function to apply bold formatting to selected teams
+    def apply_formatting(team, selected_teams):
+        return team if team not in selected_teams else f"<b>{team}</b>"
+
+    # Apply formatting to 'Home' and 'Away' columns
+    filtered_data['Home'] = filtered_data['Home'].apply(lambda x: apply_formatting(x, teams))
+    filtered_data['Away'] = filtered_data['Away'].apply(lambda x: apply_formatting(x, teams))
+
+    st.write(filtered_data.to_html(escape=False), unsafe_allow_html=True)
