@@ -1,89 +1,40 @@
-import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+import streamlit as st
+from bs4 import BeautifulSoup
+import requests
 
-st.title('Tournament Schedule')
+url = st.text_input('Enter the URL of the tournament:')
 
-tourney = st.sidebar.selectbox('Select Tournament', ['PGF Show Me The Money Showcase'])
+if url:
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-if tourney == 'PGF Show Me The Money Showcase':
+    links = soup.find_all('a')
 
-    data = pd.read_csv('game_info.csv')
+    division_links = pd.DataFrame()
 
-    default_age_group = ['U16', 'U18']
+    teams_df = pd.DataFrame()
 
-    age_group = st.sidebar.multiselect('Select Age Group', data['Age Group'].unique(), default=default_age_group)
+    for link in links:
+        if ('Division.aspx' in str(link)) and ('division' in link.text.lower()):
+            division_link = 'https://tourneymachine.com/Public/Results/' + str(link['href'])
+            division_name = link.text
+            division_links = pd.concat([division_links, pd.DataFrame([[division_name, division_link]], columns=['Division', 'Link'])])
 
-    filtered_data = data[data['Age Group'].isin(age_group)]
+    if len(division_links) == 0:
+        st.markdown('<div style="color: red;">Invalid URL.</div>', unsafe_allow_html=True)
+        st.markdown('<div style="color: red;">(Has to be tourneymachine.com/Public/Results/Division.aspx...)</div>', unsafe_allow_html=True)
+        st.stop()
 
-    teams = pd.concat([filtered_data['Away'], filtered_data['Home']])
-    teams = teams.unique()
-    teams = sorted(teams)
+    for division, division_link in zip(division_links['Division'], division_links['Link']):
+        response = requests.get(division_link)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = soup.find_all('a')
 
-    default_teams = ['Athletics Gold Tamborra-Freeman', 'Atlanta Vipers 07- Maldonado', 'Birmingham Thunderbolts Premier 2025 Kemp', 'D1vision Softball 16U National', 
-                     'EC Bullets 18U Gold - Schnute', 'GA Bombers 16U National', 'GA Impact Taylor', 'GA Impact Premier - Maher', 'Impact - Caymol', 'Impact Caymol - Sullivan',
-                     'Hotshots National ATL', 'Impact Gold Jazz', 'Nationals - 16U - Sars', 'TAMPA MUSTANGS RENE 18U', 'Tampa Mustangs Seymour', 'Tri-State Thunder Gold',
-                     'Team North Carolina Bowman', 'Unity Meadows/Johnson', 'Birmingham Thunderbolts 18 Premier', 'Team NC Baylog / Tracy', 'Unity 16U - Slezak', 
-                     'Tennessee Mojo 2025-Gregory']
+        for link in links:
+            if 'Team.aspx' in str(link):
+                team_name = link.text
+                teams_df = pd.concat([teams_df, pd.DataFrame([[team_name, division]], columns=['Team', 'Division'])])
+                
 
-    teams = st.sidebar.multiselect('Select Teams', teams, default=default_teams)
-
-    filtered_data = filtered_data[(filtered_data['Away'].isin(teams)) | (filtered_data['Home'].isin(teams))]
-
-    filtered_data['Time'] = pd.to_datetime(filtered_data['Date'] + '/24 ' + filtered_data['Time'])
-    filtered_data = filtered_data[filtered_data['Time'] > pd.Timestamp.now()]
-
-    date_times = filtered_data['Time'].unique()
-    date_times = ["All"] + list(date_times)  # Add "All" to the list of options
-
-    # Display the multiselect widget
-    selected_date_times = st.sidebar.multiselect('Select Date/Time', date_times, default=["All"])
-
-    # Check if "All" is selected
-    if "All" in selected_date_times:
-        # If "All" is selected, show all date/times
-        filtered_data = filtered_data
-    else:
-        # Otherwise, filter the DataFrame based on selected date/times
-        filtered_data = filtered_data[filtered_data['Time'].isin(selected_date_times)]
-
-    filtered_data = filtered_data[['Home', 'Away', 'Time', 'Field']]
-
-    filtered_data['Time'] = filtered_data['Time'].dt.strftime('%m/%d/%Y %I:%M %p')
-    filtered_data = filtered_data.sort_values(by='Time').drop_duplicates()
-
-    st.write(
-        """
-        <style>
-        table {
-            font-family: Arial, sans-serif;
-            border-collapse: collapse;
-            width: 100%;
-        }
-        th {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-        }
-        td {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Function to apply bold formatting to selected teams
-    def apply_formatting(team, selected_teams):
-        return team if team not in selected_teams else f"<b>{team}</b>"
-
-    # Apply formatting to 'Home' and 'Away' columns
-    filtered_data['Home'] = filtered_data['Home'].apply(lambda x: apply_formatting(x, teams))
-    filtered_data['Away'] = filtered_data['Away'].apply(lambda x: apply_formatting(x, teams))
-
-    st.write(filtered_data.to_html(escape=False), unsafe_allow_html=True)
+    st.dataframe(teams_df.reset_index(drop=True), use_container_width=True)
